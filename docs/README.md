@@ -27,9 +27,9 @@ The documentation is maintained alongside the source code so that product requir
 
 ### Platform Modules
 
-| Document                            | Purpose                                                | Status  |
-| ----------------------------------- | ------------------------------------------------------ | ------- |
-| `05-events-and-seasons.md`          | Events, editions, academic periods, and lifecycle      | Planned |
+| Document                            | Purpose                                                | Status           |
+| ----------------------------------- | ------------------------------------------------------ | ---------------- |
+| `05-events-and-seasons.md`          | Events, editions, academic periods, and lifecycle      | Initial baseline |
 | `06-sports-and-competitions.md`     | Sports, categories, competitions, and formats          | Planned |
 | `07-fixtures-and-tournaments.md`    | Fixtures, match states, brackets, and progression      | Planned |
 | `08-live-scoring.md`                | Live match updates and scoring architecture            | Planned |
