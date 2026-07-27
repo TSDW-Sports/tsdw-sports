@@ -30,7 +30,7 @@ The documentation is maintained alongside the source code so that product requir
 | Document                            | Purpose                                                | Status           |
 | ----------------------------------- | ------------------------------------------------------ | ---------------- |
 | `05-events-and-seasons.md`          | Events, editions, academic periods, and lifecycle      | Initial baseline |
-| `06-sports-and-competitions.md`     | Sports, categories, competitions, and formats          | Planned |
+| `06-sports-and-competitions.md`     | Sports, categories, competitions, and formats          | Initial baseline |
 | `07-fixtures-and-tournaments.md`    | Fixtures, match states, brackets, and progression      | Planned |
 | `08-live-scoring.md`                | Live match updates and scoring architecture            | Planned |
 | `09-teams-and-participants.md`      | Competition teams, rosters, and participants           | Planned |
