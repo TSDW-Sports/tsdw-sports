@@ -43,7 +43,7 @@ The documentation is maintained alongside the source code so that product requir
 | `16-venues-and-checkin.md`          | Venues, schedules, and event check-in                  | Planned |
 | `17-announcements-notifications.md` | Event announcements and future notifications           | Planned |
 | `18-admin-dashboard.md`             | Administrative workflows and interfaces                | Initial baseline |
-| `19-public-website.md`              | Public information architecture and user experience    | Planned |
+| `19-public-website.md`              | Public information architecture and user experience    | Initial baseline |
 | `20-sports-archive.md`              | Historical sports records and archive navigation       | Planned |
 | `21-audit-logs.md`                  | Administrative action and data-change history          | Planned |
 
