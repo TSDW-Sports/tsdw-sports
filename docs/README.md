@@ -21,7 +21,7 @@ The documentation is maintained alongside the source code so that product requir
 
 | Document                    | Purpose                                              | Status  |
 | --------------------------- | ---------------------------------------------------- | ------- |
-| `02-system-architecture.md` | Overall application and infrastructure architecture  | Planned |
+| `02-system-architecture.md` | Overall application and infrastructure architecture  | Initial baseline |
 | `03-data-model.md`          | Core entities, relationships, and data ownership     | Planned |
 | `04-auth-and-rbac.md`       | Authentication, roles, permissions, and access scope | Planned |
 
