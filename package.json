@@ -1,0 +1,10 @@
+{
+  "name": "tsdw-sports",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "pnpm --filter @tsdw/web dev",
+    "build": "pnpm --filter @tsdw/web build",
+    "lint": "pnpm --filter @tsdw/web lint"
+  }
+}
