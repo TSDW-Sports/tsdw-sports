@@ -64,3 +64,160 @@ a {
 .scrollbar-hidden::-webkit-scrollbar {
   display: none;
 }
+
+/* NEW CSS APPEND */
+/* ==========================================================================
+   REFLEX 2026 landing — entrance, watermark and ticker motion
+   Append this block to the end of app/globals.css
+   ========================================================================== */
+/* 
+@keyframes reflex-rise {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes reflex-watermark-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 0.018;
+  }
+}
+
+@keyframes reflex-ticker-scroll {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+.reflex-animate {
+  animation: reflex-rise 700ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.reflex-watermark {
+  animation: reflex-watermark-fade 1400ms ease-out both;
+  animation-delay: 120ms;
+}
+
+.reflex-ticker-track {
+  animation: reflex-ticker-scroll 26s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reflex-animate {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+
+  .reflex-watermark {
+    animation-duration: 0.01ms !important;
+  }
+
+  .reflex-ticker-track {
+    animation: none !important;
+  }
+} */
+
+
+/* CSS V2 */
+/* ==========================================================================
+   REFLEX 2026 — Arena Lighting + Broadcast Data system (V2)
+   Replace the entire previous "REFLEX 2026 landing" block in app/globals.css
+   with this block.
+   ========================================================================== */
+
+:root {
+  /* REFLEX accent system */
+  --reflex-green: #b6ff3c;
+  --reflex-blue: #2e8fff;
+  --reflex-orange: #ff5a1f;
+
+  /* Translucent "light wash" variants (8-digit hex = color + alpha) */
+  --reflex-green-wash: #b6ff3c1f;
+  --reflex-blue-wash: #2e8fff26;
+  --reflex-orange-wash: #ff5a1f24;
+}
+
+@keyframes reflex-rise {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes reflex-ticker-scroll {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+@keyframes reflex-pulse-dot {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.55;
+    transform: scale(0.85);
+  }
+}
+
+.reflex-animate {
+  animation: reflex-rise 700ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.reflex-ticker-track {
+  animation: reflex-ticker-scroll 26s linear infinite;
+}
+
+.reflex-pulse {
+  animation: reflex-pulse-dot 1.6s ease-in-out infinite;
+}
+
+/* Outline/stroke treatment for the "2026" sub-mark */
+.reflex-stroke {
+  color: transparent;
+  -webkit-text-stroke: 1px var(--reflex-blue);
+}
+
+@supports not ((-webkit-text-stroke: 1px) or (text-stroke: 1px)) {
+  .reflex-stroke {
+    color: var(--text-secondary);
+    -webkit-text-stroke: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reflex-animate {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+
+  .reflex-ticker-track {
+    animation: none !important;
+  }
+
+  .reflex-pulse {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+}
