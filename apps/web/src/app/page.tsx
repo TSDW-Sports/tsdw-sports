@@ -13,7 +13,8 @@ import {
 
 export const metadata = {
   title: "TSDW Sports | Live College Sports",
-  description: "Follow live fixtures, results, and tournaments at TCET. TSpark 2027 is live now.",
+  description:
+    "Follow live fixtures, results, and tournaments at TCET. TSpark 2027 is live now.",
 };
 
 export default function Home() {
@@ -35,7 +36,11 @@ export default function Home() {
       const tomorrow = new Date(today);
       tomorrow.setDate(tomorrow.getDate() + 1);
       const fixtureDate = f.scheduledTime || new Date();
-      return (f.status === "COMPLETED" || f.status === "WALKOVER") && fixtureDate >= today && fixtureDate < tomorrow;
+      return (
+        (f.status === "COMPLETED" || f.status === "WALKOVER") &&
+        fixtureDate >= today &&
+        fixtureDate < tomorrow
+      );
     }).length;
 
   return (
@@ -53,17 +58,19 @@ export default function Home() {
               {mockEventEdition.name}
             </p>
           </div>
-          
+
           <div className="flex flex-wrap items-center gap-4 text-sm">
             <StatusBadge status={mockEventEdition.status} />
             <span className="text-[var(--text-muted)]">
-              {mockEventEdition.startDate.toLocaleDateString("en-US", {
-                month: "short",
-                day: "numeric",
-              })}–{mockEventEdition.endDate.toLocaleDateString("en-US", {
-                month: "short",
-                day: "numeric",
-              })}
+              {mockEventEdition.startDate && mockEventEdition.endDate
+                ? `${mockEventEdition.startDate.toLocaleDateString("en-US", {
+                    month: "short",
+                    day: "numeric",
+                  })}–${mockEventEdition.endDate.toLocaleDateString("en-US", {
+                    month: "short",
+                    day: "numeric",
+                  })}`
+                : "Dates to be announced"}
             </span>
             {hasLiveFixtures && (
               <span className="text-[var(--live)] font-semibold">

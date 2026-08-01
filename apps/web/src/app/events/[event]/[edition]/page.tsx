@@ -1,10 +1,11 @@
+import { notFound } from "next/navigation";
 import { SiteHeader } from "@/components/SiteHeader";
 import { EventHeader } from "@/components/EventHeader";
 import { SectionHeader } from "@/components/SectionHeader";
 import { FixtureCard } from "@/components/FixtureCard";
 import { CompetitionCard } from "@/components/CompetitionCard";
 import {
-  mockEventEdition,
+  getEventEdition,
   getLiveFixtures,
   getTodayFixtures,
   getRecentResults,
@@ -18,19 +19,33 @@ interface PageProps {
 }
 
 export async function generateMetadata({ params }: PageProps) {
-  const { edition } = await params;
-  const editionName = edition.replace(/-/g, " ").toUpperCase();
+  const { event, edition } = await params;
+  const eventEdition = getEventEdition(event, edition);
+
+  if (!eventEdition) {
+    return {
+      title: "Event Not Found | TSDW Sports",
+    };
+  }
 
   return {
-    title: `${editionName} | TSDW Sports`,
-    description: `Follow ${editionName} live scores, fixtures, results, and standings.`,
+    title: `${eventEdition.name} | TSDW Sports`,
+    description: `Follow ${eventEdition.name} live scores, fixtures, results, and competitions.`,
   };
 }
 
-export default function EventEditionPage() {
-  const liveFixtures = getLiveFixtures(mockEventEdition);
-  const todayFixtures = getTodayFixtures(mockEventEdition);
-  const recentResults = getRecentResults(mockEventEdition);
+export default async function EventEditionPage({ params }: PageProps) {
+  const { event, edition } = await params;
+
+  const eventEdition = getEventEdition(event, edition);
+
+  if (!eventEdition) {
+    notFound();
+  }
+
+  const liveFixtures = getLiveFixtures(eventEdition);
+  const todayFixtures = getTodayFixtures(eventEdition);
+  const recentResults = getRecentResults(eventEdition);
 
   const tabs = [
     { id: "overview", label: "Overview" },
@@ -46,7 +61,7 @@ export default function EventEditionPage() {
 
       <main className="flex-1 max-w-6xl w-full mx-auto px-4 sm:px-6 py-8 sm:py-12">
         {/* Event Header */}
-        <EventHeader edition={mockEventEdition} />
+        <EventHeader edition={eventEdition} />
 
         {/* Navigation Tabs */}
         <div className="mb-8 border-b border-[var(--border)]">
@@ -110,10 +125,12 @@ export default function EventEditionPage() {
                   <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                     <div className="flex-1">
                       <div className="text-xs font-semibold text-[var(--text-secondary)] uppercase mb-1">
-                        {fixture.scheduledTime?.toLocaleTimeString("en-US", {
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })}
+                        {fixture.scheduledTime
+                          ? fixture.scheduledTime.toLocaleTimeString("en-US", {
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            })
+                          : "TBD"}
                       </div>
 
                       <div className="text-sm font-semibold text-[var(--text-primary)]">
@@ -121,12 +138,13 @@ export default function EventEditionPage() {
                       </div>
 
                       <div className="text-sm text-[var(--text-muted)]">
-                        {fixture.team1?.code} vs {fixture.team2?.code}
+                        {fixture.team1?.code || "TBD"} vs{" "}
+                        {fixture.team2?.code || "TBD"}
                       </div>
                     </div>
 
                     <div className="text-right text-xs text-[var(--text-muted)]">
-                      {fixture.venue}
+                      {fixture.venue || "TBD"}
                     </div>
                   </div>
                 </div>
@@ -139,15 +157,17 @@ export default function EventEditionPage() {
         <section className="mb-12">
           <SectionHeader
             title="Competitions"
-            subtitle={`${mockEventEdition.competitions.length} sports`}
+            subtitle={`${eventEdition.competitions.length} competition${
+              eventEdition.competitions.length !== 1 ? "s" : ""
+            }`}
           />
 
           <div className="grid sm:grid-cols-2 gap-4">
-            {mockEventEdition.competitions.map((competition) => (
+            {eventEdition.competitions.map((competition) => (
               <CompetitionCard
                 key={competition.id}
                 competition={competition}
-                eventEditionId="tspark/2027"
+                eventEditionId={`${event}/${edition}`}
               />
             ))}
           </div>
@@ -176,10 +196,12 @@ export default function EventEditionPage() {
       <footer className="border-t border-[var(--border)] bg-[var(--surface)] mt-12">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8">
           <div className="text-sm text-[var(--text-secondary)]">
-            <p className="mb-2">TSDW Sports Platform</p>
+            <p className="mb-2">
+              TSDW Sports Platform • {eventEdition.name}
+            </p>
 
             <p className="text-xs text-[var(--text-muted)]">
-              © 2027 TSDW Sports Committee, TCET
+              TSDW Sports Committee, TCET
             </p>
           </div>
         </div>

@@ -1,6 +1,18 @@
 export type FixtureStatus = "SCHEDULED" | "LIVE" | "COMPLETED" | "POSTPONED" | "CANCELLED" | "WALKOVER";
-export type CompetitionFormat = "KNOCKOUT" | "LEAGUE" | "GROUP";
-export type CompetitionCategory = "OUTDOOR" | "INDOOR";
+export type CompetitionFormat =
+  | "KNOCKOUT"
+  | "LEAGUE"
+  | "GROUP"
+  | "GROUP_KNOCKOUT"
+  | "MULTI_PARTICIPANT"
+  | "LEADERBOARD"
+  | "TBD";
+
+export type CompetitionCategory =
+  | "OUTDOOR"
+  | "INDOOR"
+  | "ESPORTS"
+  | "FUN_GAMES";
 
 export interface Team {
   id: string;
@@ -51,8 +63,8 @@ export interface EventEdition {
   id: string;
   name: string;
   eventId: string;
-  startDate: Date;
-  endDate: Date;
+  startDate?: Date;
+  endDate?: Date;
   status: "UPCOMING" | "ACTIVE" | "COMPLETED";
   competitions: Competition[];
 }
@@ -73,6 +85,97 @@ export const TEAMS: Record<string, Team> = {
   BCA: { id: "bca", name: "BCA", code: "BCA" },
   BBA: { id: "bba", name: "BBA", code: "BBA" },
   MBA: { id: "mba", name: "MBA", code: "MBA" },
+};
+
+export const reflex2026: EventEdition = {
+  id: "reflex-2026",
+  name: "REFLEX 2026",
+  eventId: "reflex",
+  status: "UPCOMING",
+
+  // Dates intentionally omitted until officially confirmed.
+  competitions: [
+    {
+      id: "bgmi-2026",
+      eventEditionId: "reflex-2026",
+      name: "BGMI",
+      format: "TBD",
+      category: "ESPORTS",
+      status: "UPCOMING",
+      entrants: [],
+      fixtures: [],
+    },
+    {
+      id: "codm-2026",
+      eventEditionId: "reflex-2026",
+      name: "CODM",
+      format: "TBD",
+      category: "ESPORTS",
+      status: "UPCOMING",
+      entrants: [],
+      fixtures: [],
+    },
+    {
+      id: "valorant-2026",
+      eventEditionId: "reflex-2026",
+      name: "VALORANT",
+      format: "KNOCKOUT",
+      category: "ESPORTS",
+      status: "UPCOMING",
+      entrants: [],
+      fixtures: [],
+    },
+    {
+      id: "stumble-guys-2026",
+      eventEditionId: "reflex-2026",
+      name: "Stumble Guys",
+      format: "TBD",
+      category: "ESPORTS",
+      status: "UPCOMING",
+      entrants: [],
+      fixtures: [],
+    },
+    {
+      id: "clash-royale-2026",
+      eventEditionId: "reflex-2026",
+      name: "Clash Royale",
+      format: "KNOCKOUT",
+      category: "ESPORTS",
+      status: "UPCOMING",
+      entrants: [],
+      fixtures: [],
+    },
+    {
+      id: "fifa-2026",
+      eventEditionId: "reflex-2026",
+      name: "FIFA",
+      format: "KNOCKOUT",
+      category: "ESPORTS",
+      status: "UPCOMING",
+      entrants: [],
+      fixtures: [],
+    },
+    {
+      id: "football-2026",
+      eventEditionId: "reflex-2026",
+      name: "FOOTBALL",
+      format: "TBD",
+      category: "ESPORTS",
+      status: "UPCOMING",
+      entrants: [],
+      fixtures: [],
+    },
+    {
+      id: "cricket-auction-2026",
+      eventEditionId: "reflex-2026",
+      name: "Cricket Auction",
+      format: "TBD",
+      category: "FUN_GAMES",
+      status: "UPCOMING",
+      entrants: [],
+      fixtures: [],
+    },
+  ],
 };
 
 export const mockEventEdition: EventEdition = {
@@ -322,4 +425,20 @@ export function getUpcomingFixtures(
       return timeA - timeB;
     })
     .slice(0, limit);
+}
+
+export const EVENT_EDITIONS: EventEdition[] = [
+  reflex2026,
+  mockEventEdition,
+];
+
+export function getEventEdition(
+  event: string,
+  edition: string
+): EventEdition | undefined {
+  return EVENT_EDITIONS.find(
+    (item) =>
+      item.eventId.toLowerCase() === event.toLowerCase() &&
+      item.id.toLowerCase() === `${event}-${edition}`.toLowerCase()
+  );
 }
