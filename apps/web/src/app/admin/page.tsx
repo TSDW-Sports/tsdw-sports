@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { getStaffSession } from "@/lib/auth";
@@ -35,9 +36,22 @@ export default async function AdminPage() {
         </div>
 
         <div className="mt-8 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-6">
-          <p className="text-sm text-[var(--text-secondary)]">
-            Signed in as
-          </p>
+          <p className="text-sm text-[var(--text-secondary)]">Signed in as</p>
+
+          <div className="mt-6">
+            <Link
+              href="/admin/registrations"
+              className="block rounded-xl border border-[var(--border)] bg-[var(--surface)] p-6 transition-colors hover:bg-[var(--surface-hover)]"
+            >
+              <div className="text-lg font-semibold text-[var(--text-primary)]">
+                Registrations
+              </div>
+
+              <p className="mt-1 text-sm text-[var(--text-secondary)]">
+                Review and manage competition registrations.
+              </p>
+            </Link>
+          </div>
 
           <p className="mt-1 font-semibold text-[var(--text-primary)]">
             {session.email}
