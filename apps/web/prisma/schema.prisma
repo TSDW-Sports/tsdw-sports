@@ -1,0 +1,272 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum EventEditionStatus {
+  UPCOMING
+  ACTIVE
+  COMPLETED
+  CANCELLED
+}
+
+enum CompetitionStatus {
+  UPCOMING
+  LIVE
+  COMPLETED
+  CANCELLED
+}
+
+enum CompetitionFormat {
+  KNOCKOUT
+  LEAGUE
+  GROUP
+  GROUP_KNOCKOUT
+  MULTI_PARTICIPANT
+  LEADERBOARD
+  TBD
+}
+
+enum EntryType {
+  INDIVIDUAL
+  TEAM
+}
+
+enum EntryStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  DISQUALIFIED
+  WITHDRAWN
+}
+
+enum FixtureStatus {
+  SCHEDULED
+  LIVE
+  COMPLETED
+  POSTPONED
+  CANCELLED
+  WALKOVER
+}
+
+enum StaffRole {
+  ADMIN
+  SCOREKEEPER
+}
+
+model Event {
+  id        String         @id @default(cuid())
+  name      String
+  slug      String         @unique
+  editions  EventEdition[]
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+}
+
+model EventEdition {
+  id     String             @id @default(cuid())
+  name   String
+  year   Int
+  status EventEditionStatus @default(UPCOMING)
+
+  startDate DateTime?
+  endDate   DateTime?
+  venue     String?
+
+  eventId String
+  event   Event  @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  competitions Competition[]
+  standings    DepartmentStanding[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([eventId, year])
+}
+
+model Competition {
+  id   String @id @default(cuid())
+  name String
+  slug String
+
+  format    CompetitionFormat @default(TBD)
+  entryType EntryType
+  status    CompetitionStatus @default(UPCOMING)
+
+  minPlayers Int?
+  maxPlayers Int?
+  entryFee   Int?
+
+  platform String?
+  venue    String?
+  rules    String?
+
+  eventEditionId String
+  eventEdition   EventEdition @relation(fields: [eventEditionId], references: [id], onDelete: Cascade)
+
+  entries  CompetitionEntry[]
+  fixtures Fixture[]
+
+  winnerEntryId   String?
+  runnerUpEntryId String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([eventEditionId, slug])
+}
+
+model Department {
+  id   String @id @default(cuid())
+  name String
+  code String @unique
+
+  participants Participant[]
+  entries      CompetitionEntry[]
+  standings    DepartmentStanding[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Participant {
+  id   String @id @default(cuid())
+  name String
+
+  email       String?
+  phone       String?
+  studentCode String?
+
+  departmentId String?
+  department   Department? @relation(fields: [departmentId], references: [id])
+
+  memberships CompetitionEntryMember[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model CompetitionEntry {
+  id   String @id @default(cuid())
+  name String
+
+  status EntryStatus @default(PENDING)
+
+  competitionId String
+  competition   Competition @relation(fields: [competitionId], references: [id], onDelete: Cascade)
+
+  departmentId String?
+  department   Department? @relation(fields: [departmentId], references: [id])
+
+  members CompetitionEntryMember[]
+
+  fixtureSides FixtureSide[]
+
+  seed Int?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([competitionId, name])
+}
+
+model CompetitionEntryMember {
+  id String @id @default(cuid())
+
+  entryId String
+  entry   CompetitionEntry @relation(fields: [entryId], references: [id], onDelete: Cascade)
+
+  participantId String
+  participant   Participant @relation(fields: [participantId], references: [id], onDelete: Cascade)
+
+  isCaptain Boolean @default(false)
+
+  @@unique([entryId, participantId])
+}
+
+model Fixture {
+  id String @id @default(cuid())
+
+  competitionId String
+  competition   Competition @relation(fields: [competitionId], references: [id], onDelete: Cascade)
+
+  round String?
+
+  status FixtureStatus @default(SCHEDULED)
+
+  scheduledAt DateTime?
+  venue       String?
+
+  sides FixtureSide[]
+
+  winnerEntryId String?
+
+  notes String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model FixtureSide {
+  id String @id @default(cuid())
+
+  fixtureId String
+  fixture   Fixture @relation(fields: [fixtureId], references: [id], onDelete: Cascade)
+
+  entryId String?
+  entry   CompetitionEntry? @relation(fields: [entryId], references: [id])
+
+  position Int
+
+  score Float?
+
+  result String?
+
+  @@unique([fixtureId, position])
+}
+
+model DepartmentStanding {
+  id String @id @default(cuid())
+
+  eventEditionId String
+  eventEdition   EventEdition @relation(fields: [eventEditionId], references: [id], onDelete: Cascade)
+
+  departmentId String
+  department   Department @relation(fields: [departmentId], references: [id], onDelete: Cascade)
+
+  points Int @default(0)
+
+  gold   Int @default(0)
+  silver Int @default(0)
+  bronze Int @default(0)
+
+  updatedAt DateTime @updatedAt
+
+  @@unique([eventEditionId, departmentId])
+}
+
+model StaffUser {
+  id String @id @default(cuid())
+
+  name  String
+  email String @unique
+
+  role StaffRole @default(SCOREKEEPER)
+
+  passwordHash String
+
+  active Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}

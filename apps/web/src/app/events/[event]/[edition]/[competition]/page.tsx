@@ -7,9 +7,13 @@ import { StatusBadge } from "@/components/StatusBadge";
 import { FixtureCard } from "@/components/FixtureCard";
 import { BracketView } from "@/components/BracketView";
 
+import { prisma } from "@/lib/prisma";
+
 import {
   getEventEdition,
   getRecentResults,
+  type EventEdition,
+  type Competition,
 } from "@/lib/mock-data";
 
 interface PageProps {
@@ -27,6 +31,191 @@ function createCompetitionSlug(name: string) {
     .replace(/[&']/g, "");
 }
 
+async function loadCompetitionPage(
+  eventSlug: string,
+  editionSlug: string,
+  competitionSlug: string
+): Promise<
+  | {
+      eventEdition: EventEdition;
+      competition: Competition;
+    }
+  | undefined
+> {
+  /*
+   * Keep existing mock-backed events such as TSpark working.
+   */
+  if (eventSlug.toLowerCase() !== "reflex") {
+    const eventEdition = getEventEdition(eventSlug, editionSlug);
+
+    if (!eventEdition) {
+      return undefined;
+    }
+
+    const competition = eventEdition.competitions.find(
+      (item) =>
+        createCompetitionSlug(item.name) === competitionSlug.toLowerCase()
+    );
+
+    if (!competition) {
+      return undefined;
+    }
+
+    return {
+      eventEdition,
+      competition,
+    };
+  }
+
+  /*
+   * REFLEX is database-backed.
+   */
+  const year = Number(editionSlug);
+
+  if (!Number.isInteger(year)) {
+    return undefined;
+  }
+
+  const dbEdition = await prisma.eventEdition.findFirst({
+    where: {
+      year,
+      event: {
+        slug: eventSlug.toLowerCase(),
+      },
+    },
+    include: {
+      event: true,
+    },
+  });
+
+  if (!dbEdition) {
+    return undefined;
+  }
+
+  const dbCompetition = await prisma.competition.findFirst({
+    where: {
+      eventEditionId: dbEdition.id,
+      slug: competitionSlug.toLowerCase(),
+    },
+    include: {
+      entries: {
+        where: {
+          status: "APPROVED",
+        },
+        include: {
+          department: true,
+        },
+        orderBy: {
+          name: "asc",
+        },
+      },
+      fixtures: {
+        include: {
+          sides: {
+            include: {
+              entry: {
+                include: {
+                  department: true,
+                },
+              },
+            },
+            orderBy: {
+              position: "asc",
+            },
+          },
+        },
+        orderBy: {
+          scheduledAt: "asc",
+        },
+      },
+    },
+  });
+
+  if (!dbCompetition) {
+    return undefined;
+  }
+
+  const entrants = dbCompetition.entries.map((entry) => ({
+    id: entry.id,
+    name: entry.name,
+    code: entry.department?.code || entry.name,
+  }));
+
+  const fixtures = dbCompetition.fixtures.map((fixture) => {
+    const side1 = fixture.sides.find((side) => side.position === 1);
+    const side2 = fixture.sides.find((side) => side.position === 2);
+
+    const team1 = side1?.entry
+      ? {
+          id: side1.entry.id,
+          name: side1.entry.name,
+          code: side1.entry.department?.code || side1.entry.name,
+        }
+      : undefined;
+
+    const team2 = side2?.entry
+      ? {
+          id: side2.entry.id,
+          name: side2.entry.name,
+          code: side2.entry.department?.code || side2.entry.name,
+        }
+      : undefined;
+
+    return {
+      id: fixture.id,
+      competition: dbCompetition.id,
+      round: fixture.round || "TBD",
+      team1,
+      team2,
+      score1: side1?.score ?? undefined,
+      score2: side2?.score ?? undefined,
+      status:
+        fixture.status === "CANCELLED"
+          ? ("POSTPONED" as const)
+          : fixture.status,
+      scheduledTime: fixture.scheduledAt ?? undefined,
+      venue: fixture.venue ?? undefined,
+      winner: fixture.winnerEntryId ?? undefined,
+    };
+  });
+
+  const competition: Competition = {
+    id: dbCompetition.id,
+    eventEditionId: dbEdition.id,
+    name: dbCompetition.name,
+    format: dbCompetition.format,
+    category:
+      dbCompetition.name === "Cricket Auction"
+        ? "FUN_GAMES"
+        : "ESPORTS",
+    status:
+      dbCompetition.status === "CANCELLED"
+        ? "UPCOMING"
+        : dbCompetition.status,
+    entrants,
+    fixtures,
+    winner: dbCompetition.winnerEntryId ?? undefined,
+  };
+
+  const eventEdition: EventEdition = {
+    id: dbEdition.id,
+    name: dbEdition.name,
+    eventId: dbEdition.event.slug,
+    startDate: dbEdition.startDate ?? undefined,
+    endDate: dbEdition.endDate ?? undefined,
+    status:
+      dbEdition.status === "CANCELLED"
+        ? "UPCOMING"
+        : dbEdition.status,
+    competitions: [competition],
+  };
+
+  return {
+    eventEdition,
+    competition,
+  };
+}
+
 export async function generateMetadata({ params }: PageProps) {
   const {
     event,
@@ -34,27 +223,21 @@ export async function generateMetadata({ params }: PageProps) {
     competition: competitionParam,
   } = await params;
 
-  const eventEdition = getEventEdition(event, edition);
+  const data = await loadCompetitionPage(
+    event,
+    edition,
+    competitionParam
+  );
 
-  if (!eventEdition) {
+  if (!data) {
     return {
       title: "Competition | TSDW Sports",
     };
   }
 
-  const competition = eventEdition.competitions.find(
-    (item) => createCompetitionSlug(item.name) === competitionParam.toLowerCase()
-  );
-
-  if (!competition) {
-    return {
-      title: `Competition | ${eventEdition.name} | TSDW Sports`,
-    };
-  }
-
   return {
-    title: `${competition.name} | ${eventEdition.name} | TSDW Sports`,
-    description: `Follow ${competition.name} fixtures, results, and competition updates at ${eventEdition.name}.`,
+    title: `${data.competition.name} | ${data.eventEdition.name} | TSDW Sports`,
+    description: `Follow ${data.competition.name} fixtures, results, and competition updates at ${data.eventEdition.name}.`,
   };
 }
 
@@ -65,19 +248,17 @@ export default async function CompetitionPage({ params }: PageProps) {
     competition: competitionParam,
   } = await params;
 
-  const eventEdition = getEventEdition(event, edition);
-
-  if (!eventEdition) {
-    notFound();
-  }
-
-  const competition = eventEdition.competitions.find(
-    (item) => createCompetitionSlug(item.name) === competitionParam.toLowerCase()
+  const data = await loadCompetitionPage(
+    event,
+    edition,
+    competitionParam
   );
 
-  if (!competition) {
+  if (!data) {
     notFound();
   }
+
+  const { eventEdition, competition } = data;
 
   const completedFixtures = competition.fixtures.filter(
     (fixture) =>
@@ -85,7 +266,10 @@ export default async function CompetitionPage({ params }: PageProps) {
       fixture.status === "WALKOVER"
   );
 
-  const competitionResults = getRecentResults(eventEdition, 100).filter(
+  const competitionResults = getRecentResults(
+    eventEdition,
+    100
+  ).filter(
     (fixture) => fixture.competition === competition.id
   );
 
@@ -170,7 +354,7 @@ export default async function CompetitionPage({ params }: PageProps) {
           )}
         </div>
 
-        {/* Competition information unavailable */}
+        {/* Empty state */}
         {competition.fixtures.length === 0 &&
           competition.entrants.length === 0 && (
             <section className="mb-12">
@@ -180,14 +364,14 @@ export default async function CompetitionPage({ params }: PageProps) {
                 </p>
 
                 <p className="text-sm text-[var(--text-secondary)]">
-                  Fixtures, participants, schedule, and tournament details
-                  will be published once they are finalized.
+                  Fixtures, participants, schedule, and tournament
+                  details will be published once they are finalized.
                 </p>
               </div>
             </section>
           )}
 
-        {/* Tournament Bracket */}
+        {/* Bracket */}
         {hasBracket && competition.fixtures.length > 0 && (
           <section className="mb-12">
             <SectionHeader title="Bracket" />
@@ -270,7 +454,6 @@ export default async function CompetitionPage({ params }: PageProps) {
         )}
       </main>
 
-      {/* Footer */}
       <footer className="border-t border-[var(--border)] bg-[var(--surface)] mt-12">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8">
           <div className="text-sm text-[var(--text-secondary)]">
@@ -279,7 +462,7 @@ export default async function CompetitionPage({ params }: PageProps) {
             </p>
 
             <p className="text-xs text-[var(--text-muted)]">
-              © 2026 TSDW Sports Committee, TCET
+              TSDW Sports Committee, TCET
             </p>
           </div>
         </div>

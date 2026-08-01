@@ -1,14 +1,20 @@
 import { notFound } from "next/navigation";
+
 import { SiteHeader } from "@/components/SiteHeader";
 import { EventHeader } from "@/components/EventHeader";
 import { SectionHeader } from "@/components/SectionHeader";
 import { FixtureCard } from "@/components/FixtureCard";
 import { CompetitionCard } from "@/components/CompetitionCard";
+
+import { prisma } from "@/lib/prisma";
+
 import {
   getEventEdition,
   getLiveFixtures,
   getTodayFixtures,
   getRecentResults,
+  type EventEdition,
+  type Competition,
 } from "@/lib/mock-data";
 
 interface PageProps {
@@ -18,9 +24,94 @@ interface PageProps {
   }>;
 }
 
+async function loadEventEdition(
+  eventSlug: string,
+  editionSlug: string
+): Promise<EventEdition | undefined> {
+  /*
+   * Keep existing events such as TSpark on mock data for now.
+   */
+  if (eventSlug.toLowerCase() !== "reflex") {
+    return getEventEdition(eventSlug, editionSlug);
+  }
+
+  /*
+   * REFLEX is database-backed.
+   */
+  const year = Number(editionSlug);
+
+  if (!Number.isInteger(year)) {
+    return undefined;
+  }
+
+  const dbEdition = await prisma.eventEdition.findFirst({
+    where: {
+      year,
+      event: {
+        slug: eventSlug.toLowerCase(),
+      },
+    },
+    include: {
+      event: true,
+      competitions: {
+        orderBy: {
+          name: "asc",
+        },
+      },
+    },
+  });
+
+  if (!dbEdition) {
+    return undefined;
+  }
+
+  const competitions: Competition[] = dbEdition.competitions.map(
+    (competition) => ({
+      id: competition.id,
+      eventEditionId: dbEdition.id,
+      name: competition.name,
+      format: competition.format,
+
+      // Temporary mapping until category exists in Prisma.
+      category:
+        competition.name === "Cricket Auction"
+          ? "FUN_GAMES"
+          : "ESPORTS",
+
+      // Old frontend type does not currently support CANCELLED.
+      status:
+        competition.status === "CANCELLED"
+          ? "UPCOMING"
+          : competition.status,
+
+      entrants: [],
+      fixtures: [],
+
+      winner: competition.winnerEntryId ?? undefined,
+    })
+  );
+
+  return {
+    id: dbEdition.id,
+    name: dbEdition.name,
+    eventId: dbEdition.event.slug,
+
+    startDate: dbEdition.startDate ?? undefined,
+    endDate: dbEdition.endDate ?? undefined,
+
+    status:
+      dbEdition.status === "CANCELLED"
+        ? "UPCOMING"
+        : dbEdition.status,
+
+    competitions,
+  };
+}
+
 export async function generateMetadata({ params }: PageProps) {
   const { event, edition } = await params;
-  const eventEdition = getEventEdition(event, edition);
+
+  const eventEdition = await loadEventEdition(event, edition);
 
   if (!eventEdition) {
     return {
@@ -37,7 +128,7 @@ export async function generateMetadata({ params }: PageProps) {
 export default async function EventEditionPage({ params }: PageProps) {
   const { event, edition } = await params;
 
-  const eventEdition = getEventEdition(event, edition);
+  const eventEdition = await loadEventEdition(event, edition);
 
   if (!eventEdition) {
     notFound();
@@ -100,7 +191,10 @@ export default async function EventEditionPage({ params }: PageProps) {
 
             <div className="grid sm:grid-cols-2 gap-6">
               {liveFixtures.map((fixture) => (
-                <FixtureCard key={fixture.id} fixture={fixture} />
+                <FixtureCard
+                  key={fixture.id}
+                  fixture={fixture}
+                />
               ))}
             </div>
           </section>
@@ -126,10 +220,13 @@ export default async function EventEditionPage({ params }: PageProps) {
                     <div className="flex-1">
                       <div className="text-xs font-semibold text-[var(--text-secondary)] uppercase mb-1">
                         {fixture.scheduledTime
-                          ? fixture.scheduledTime.toLocaleTimeString("en-US", {
-                              hour: "2-digit",
-                              minute: "2-digit",
-                            })
+                          ? fixture.scheduledTime.toLocaleTimeString(
+                              "en-US",
+                              {
+                                hour: "2-digit",
+                                minute: "2-digit",
+                              }
+                            )
                           : "TBD"}
                       </div>
 
@@ -185,14 +282,17 @@ export default async function EventEditionPage({ params }: PageProps) {
 
             <div className="grid sm:grid-cols-2 gap-4">
               {recentResults.map((fixture) => (
-                <FixtureCard key={fixture.id} fixture={fixture} compact />
+                <FixtureCard
+                  key={fixture.id}
+                  fixture={fixture}
+                  compact
+                />
               ))}
             </div>
           </section>
         )}
       </main>
 
-      {/* Footer */}
       <footer className="border-t border-[var(--border)] bg-[var(--surface)] mt-12">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8">
           <div className="text-sm text-[var(--text-secondary)]">
