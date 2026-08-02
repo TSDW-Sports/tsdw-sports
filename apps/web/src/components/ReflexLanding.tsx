@@ -284,7 +284,7 @@
 
 import Link from "next/link";
 import type { CSSProperties } from "react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 
 const TICKER_ITEMS = [
   "BGMI",
@@ -377,38 +377,13 @@ const LERP = 0.12;
 
 export function ReflexLanding() {
   const rootRef = useRef<HTMLDivElement | null>(null);
-  const targetPos = useRef({ x: 0.5, y: 0.5 });
-  const currentPos = useRef({ x: 0.5, y: 0.5 });
+  const targetPos = useRef({ x: 0, y: 0 });
+  const currentPos = useRef({ x: 0, y: 0 });
   const rafId = useRef<number | null>(null);
-
-  const [interactionsEnabled, setInteractionsEnabled] = useState(false);
-
-  const animate = useCallback(() => {
-    const current = currentPos.current;
-    const target = targetPos.current;
-
-    current.x += (target.x - current.x) * LERP;
-    current.y += (target.y - current.y) * LERP;
-
-    const node = rootRef.current;
-    if (node) {
-      node.style.setProperty("--mx", `${(current.x * 100).toFixed(2)}%`);
-      node.style.setProperty("--my", `${(current.y * 100).toFixed(2)}%`);
-      node.style.setProperty(
-        "--px",
-        `${((current.x - 0.5) * 24).toFixed(2)}px`,
-      );
-      node.style.setProperty(
-        "--py",
-        `${((current.y - 0.5) * 14).toFixed(2)}px`,
-      );
-    }
-
-    rafId.current = requestAnimationFrame(animate);
-  }, []);
 
   useEffect(() => {
     const isCoarsePointer = window.matchMedia("(pointer: coarse)").matches;
+
     const prefersReducedMotion = window.matchMedia(
       "(prefers-reduced-motion: reduce)",
     ).matches;
@@ -417,13 +392,44 @@ export function ReflexLanding() {
       return;
     }
 
-    setInteractionsEnabled(true);
+    targetPos.current = {
+      x: window.innerWidth / 2,
+      y: window.innerHeight / 2,
+    };
+
+    currentPos.current = {
+      x: window.innerWidth / 2,
+      y: window.innerHeight / 2,
+    };
 
     const handleMouseMove = (event: MouseEvent) => {
       targetPos.current = {
-        x: event.clientX / window.innerWidth,
-        y: event.clientY / window.innerHeight,
+        x: event.clientX,
+        y: event.clientY,
       };
+    };
+
+    const animate = () => {
+      const current = currentPos.current;
+      const target = targetPos.current;
+
+      current.x += (target.x - current.x) * LERP;
+      current.y += (target.y - current.y) * LERP;
+
+      const root = rootRef.current;
+
+      if (root) {
+        root.style.setProperty("--mx", `${current.x}px`);
+        root.style.setProperty("--my", `${current.y}px`);
+
+        const normalizedX = current.x / window.innerWidth - 0.5;
+        const normalizedY = current.y / window.innerHeight - 0.5;
+
+        root.style.setProperty("--px", `${normalizedX * -12}px`);
+        root.style.setProperty("--py", `${normalizedY * -8}px`);
+      }
+
+      rafId.current = requestAnimationFrame(animate);
     };
 
     window.addEventListener("mousemove", handleMouseMove);
@@ -431,11 +437,12 @@ export function ReflexLanding() {
 
     return () => {
       window.removeEventListener("mousemove", handleMouseMove);
+
       if (rafId.current !== null) {
         cancelAnimationFrame(rafId.current);
       }
     };
-  }, [animate]);
+  }, []);
 
   const handleAccentEnter = (wash: string) => {
     rootRef.current?.style.setProperty("--hover-accent", wash);
@@ -458,14 +465,22 @@ export function ReflexLanding() {
         } as CSSProperties
       }
     >
-      {/* Arena light washes — directional, not centered blobs */}
+      {/* Arena light washes */}
       <div
         aria-hidden="true"
         className="pointer-events-none absolute inset-0 z-0"
         style={{
           backgroundImage: `
-            radial-gradient(1100px circle at 6% -6%, var(--reflex-blue-wash), transparent 55%),
-            radial-gradient(1100px circle at 96% 106%, var(--reflex-orange-wash), transparent 55%)
+            radial-gradient(
+              1100px circle at 6% -6%,
+              var(--reflex-blue-wash),
+              transparent 55%
+            ),
+            radial-gradient(
+              1100px circle at 96% 106%,
+              var(--reflex-orange-wash),
+              transparent 55%
+            )
           `,
         }}
       />
@@ -483,31 +498,49 @@ export function ReflexLanding() {
         }}
       />
 
-      {/* Tinted sightlines catching the arena light */}
+      {/* Arena sightlines */}
       <div
         aria-hidden="true"
         className="pointer-events-none absolute inset-0 z-0"
         style={{
           backgroundImage: `
-            linear-gradient(115deg, transparent 18%, var(--reflex-blue-wash) 18.4%, var(--reflex-blue-wash) 18.7%, transparent 19%),
-            linear-gradient(115deg, transparent 78%, var(--reflex-orange-wash) 78.4%, var(--reflex-orange-wash) 78.7%, transparent 79%)
+            linear-gradient(
+              115deg,
+              transparent 18%,
+              var(--reflex-blue-wash) 18.4%,
+              var(--reflex-blue-wash) 18.7%,
+              transparent 19%
+            ),
+            linear-gradient(
+              115deg,
+              transparent 78%,
+              var(--reflex-orange-wash) 78.4%,
+              var(--reflex-orange-wash) 78.7%,
+              transparent 79%
+            )
           `,
         }}
       />
 
-      {/* Arena cursor light — desktop only, pointer loop writes CSS vars directly */}
-      {interactionsEnabled && (
-        <div
-          aria-hidden="true"
-          className="pointer-events-none fixed inset-0 z-0"
-          style={{
-            background: `
-              radial-gradient(520px circle at var(--mx) var(--my), var(--hover-accent, var(--reflex-orange-wash)), transparent 45%),
-              radial-gradient(900px circle at var(--mx) var(--my), var(--reflex-blue-wash), transparent 60%)
-            `,
-          }}
-        />
-      )}
+      {/* Desktop cursor spotlight */}
+      <div
+        aria-hidden="true"
+        className="reflex-cursor-light pointer-events-none fixed inset-0 z-0"
+        style={{
+          background: `
+            radial-gradient(
+              520px circle at var(--mx) var(--my),
+              var(--hover-accent, var(--reflex-orange-wash)),
+              transparent 45%
+            ),
+            radial-gradient(
+              900px circle at var(--mx) var(--my),
+              var(--reflex-blue-wash),
+              transparent 60%
+            )
+          `,
+        }}
+      />
 
       <div className="relative z-10 flex min-h-screen flex-col">
         {/* Header */}
@@ -533,6 +566,7 @@ export function ReflexLanding() {
               style={{ animationDelay: "80ms" }}
             >
               <span className="reflex-pulse h-1.5 w-1.5 rounded-full bg-[var(--reflex-green)]" />
+
               <span className="text-xs font-bold uppercase tracking-[0.28em] text-[var(--reflex-green)]">
                 Status / Preparing
               </span>
@@ -555,6 +589,7 @@ export function ReflexLanding() {
               }}
             >
               REFLEX
+
               <span className="reflex-stroke block text-[0.42em] tracking-[0.2em]">
                 2026
               </span>
@@ -581,7 +616,9 @@ export function ReflexLanding() {
                   style={{ animationDelay: "320ms" }}
                 >
                   <span>08 Competitions</span>
+
                   <span className="h-3 w-px bg-[var(--reflex-blue)]/40" />
+
                   <span>01 Arena</span>
                 </div>
 
@@ -594,6 +631,7 @@ export function ReflexLanding() {
                     className="group inline-flex items-center gap-3 border-2 border-[var(--reflex-green)] bg-transparent px-6 py-3 text-sm font-bold uppercase tracking-[0.14em] text-[var(--reflex-green)] transition-all duration-150 ease-[cubic-bezier(0.65,0,0.35,1)] hover:bg-[var(--reflex-green)] hover:text-[#050505] focus-visible:bg-[var(--reflex-green)] focus-visible:text-[#050505] focus-visible:outline-none"
                   >
                     <span>Enter the Arena</span>
+
                     <span className="transition-transform duration-150 ease-[cubic-bezier(0.65,0,0.35,1)] group-hover:translate-x-1.5">
                       →
                     </span>
@@ -608,6 +646,7 @@ export function ReflexLanding() {
                 <p className="mb-2 text-xs font-semibold uppercase tracking-[0.25em] text-[var(--text-muted)]">
                   System
                 </p>
+
                 <p className="text-lg font-bold uppercase tracking-[0.12em] text-[var(--reflex-green)]">
                   Online
                 </p>
@@ -625,7 +664,7 @@ export function ReflexLanding() {
           <div className="flex items-center">
             <div className="relative z-20 flex shrink-0 items-center gap-3 bg-[var(--canvas)] px-5 sm:px-8">
               <span
-                className="h-2 w-2 shrink-0 rounded-full bg-[#a3ff12] reflex-status-dot"
+                className="reflex-status-dot h-2 w-2 shrink-0 rounded-full bg-[#a3ff12]"
                 aria-hidden="true"
               />
 
@@ -633,7 +672,10 @@ export function ReflexLanding() {
                 REFLEX / 2026
               </span>
 
-              <span className="ml-1 h-5 w-px bg-[#ff5a1f]" aria-hidden="true" />
+              <span
+                className="ml-1 h-5 w-px bg-[#ff5a1f]"
+                aria-hidden="true"
+              />
             </div>
 
             <div className="reflex-ticker-track flex w-max flex-shrink-0 whitespace-nowrap pl-6">
@@ -645,6 +687,7 @@ export function ReflexLanding() {
                   {TICKER_ITEMS.map((item) => (
                     <span key={item} className="flex items-center gap-6">
                       {item}
+
                       <span className="text-[var(--reflex-orange)]">◆</span>
                     </span>
                   ))}
@@ -653,7 +696,10 @@ export function ReflexLanding() {
             </div>
           </div>
         </div>
-        <span className="sr-only">Competitions: {TICKER_ITEMS.join(", ")}</span>
+
+        <span className="sr-only">
+          Competitions: {TICKER_ITEMS.join(", ")}
+        </span>
 
         {/* Competition Arena Wall */}
         <section
@@ -670,7 +716,11 @@ export function ReflexLanding() {
                 <li
                   key={item.name}
                   className={`group relative ${item.gridClass} ${item.alignClass}`}
-                  style={{ "--item-accent": item.accent } as CSSProperties}
+                  style={
+                    {
+                      "--item-accent": item.accent,
+                    } as CSSProperties
+                  }
                   onMouseEnter={() => handleAccentEnter(item.wash)}
                   onMouseLeave={handleAccentLeave}
                 >
@@ -722,7 +772,7 @@ export function ReflexLanding() {
                 href="https://github.com/autistickyrios"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-[var(--text-secondary)] hover:text-[#a3ff12] transition-colors"
+                className="text-[var(--text-secondary)] transition-colors hover:text-[#a3ff12]"
               >
                 GitHub ↗
               </a>
@@ -731,7 +781,7 @@ export function ReflexLanding() {
                 href="https://www.linkedin.com/in/levenine/"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-[var(--text-secondary)] hover:text-[#a3ff12] transition-colors"
+                className="text-[var(--text-secondary)] transition-colors hover:text-[#a3ff12]"
               >
                 LinkedIn ↗
               </a>

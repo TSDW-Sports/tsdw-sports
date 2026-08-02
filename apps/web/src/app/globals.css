@@ -221,3 +221,19 @@ a {
     transform: none !important;
   }
 }
+
+.reflex-cursor-light {
+  display: block;
+}
+
+@media (pointer: coarse) {
+  .reflex-cursor-light {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reflex-cursor-light {
+    display: none;
+  }
+}
