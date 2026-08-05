@@ -12,16 +12,15 @@ export function CompetitionCard({
   competition,
   eventEditionId,
 }: CompetitionCardProps) {
-  const competitionSlug = competition.name
-    .toLowerCase()
-    .replace(/\s+/g, "-")
-    .replace(/[&']/g, "");
+  const competitionSlug =
+    competition.slug ??
+    competition.name.toLowerCase().replace(/\s+/g, "-").replace(/[&']/g, "");
 
   const liveFixtures = competition.fixtures.filter(
-    (f) => f.status === "LIVE"
+    (f) => f.status === "LIVE",
   ).length;
   const completedFixtures = competition.fixtures.filter(
-    (f) => f.status === "COMPLETED" || f.status === "WALKOVER"
+    (f) => f.status === "COMPLETED" || f.status === "WALKOVER",
   ).length;
 
   return (
@@ -35,9 +34,17 @@ export function CompetitionCard({
             {competition.name}
           </h3>
           <div className="flex items-center gap-2 text-xs text-[var(--text-muted)]">
-            <span>{competition.category === "OUTDOOR" ? "Outdoor" : "Indoor"}</span>
+            <span>
+              {competition.category === "OUTDOOR" ? "Outdoor" : "Indoor"}
+            </span>
             <span>•</span>
-            <span>{competition.format === "KNOCKOUT" ? "Knockout" : competition.format === "LEAGUE" ? "League" : "Group"}</span>
+            <span>
+              {competition.format === "KNOCKOUT"
+                ? "Knockout"
+                : competition.format === "LEAGUE"
+                  ? "League"
+                  : "Group"}
+            </span>
           </div>
         </div>
         <div className="flex-shrink-0">
@@ -47,9 +54,13 @@ export function CompetitionCard({
 
       <div className="space-y-2 mb-3">
         <div className="flex items-center justify-between text-xs">
-          <span className="text-[var(--text-muted)]">{competition.entrants.length} teams</span>
+          <span className="text-[var(--text-muted)]">
+            {competition.entrants.length} teams
+          </span>
           {liveFixtures > 0 && (
-            <span className="font-semibold text-[var(--live)]">{liveFixtures} live</span>
+            <span className="font-semibold text-[var(--live)]">
+              {liveFixtures} live
+            </span>
           )}
         </div>
         {completedFixtures > 0 && (

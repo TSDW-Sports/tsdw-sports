@@ -50,6 +50,10 @@ export interface Fixture {
 export interface Competition {
   id: string;
   eventEditionId: string;
+
+  // Optional because TSpark mock competitions don't explicitly store one.
+  slug?: string;
+
   name: string;
   format: CompetitionFormat;
   category: CompetitionCategory;

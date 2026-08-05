@@ -26,7 +26,7 @@ interface PageProps {
 
 async function loadEventEdition(
   eventSlug: string,
-  editionSlug: string
+  editionSlug: string,
 ): Promise<EventEdition | undefined> {
   /*
    * Keep existing events such as TSpark on mock data for now.
@@ -69,26 +69,25 @@ async function loadEventEdition(
     (competition) => ({
       id: competition.id,
       eventEditionId: dbEdition.id,
+
+      slug: competition.slug,
+
       name: competition.name,
       format: competition.format,
 
       // Temporary mapping until category exists in Prisma.
       category:
-        competition.name === "Cricket Auction"
-          ? "FUN_GAMES"
-          : "ESPORTS",
+        competition.name === "Cricket Auction" ? "FUN_GAMES" : "ESPORTS",
 
       // Old frontend type does not currently support CANCELLED.
       status:
-        competition.status === "CANCELLED"
-          ? "UPCOMING"
-          : competition.status,
+        competition.status === "CANCELLED" ? "UPCOMING" : competition.status,
 
       entrants: [],
       fixtures: [],
 
       winner: competition.winnerEntryId ?? undefined,
-    })
+    }),
   );
 
   return {
@@ -99,10 +98,7 @@ async function loadEventEdition(
     startDate: dbEdition.startDate ?? undefined,
     endDate: dbEdition.endDate ?? undefined,
 
-    status:
-      dbEdition.status === "CANCELLED"
-        ? "UPCOMING"
-        : dbEdition.status,
+    status: dbEdition.status === "CANCELLED" ? "UPCOMING" : dbEdition.status,
 
     competitions,
   };
@@ -191,10 +187,7 @@ export default async function EventEditionPage({ params }: PageProps) {
 
             <div className="grid sm:grid-cols-2 gap-6">
               {liveFixtures.map((fixture) => (
-                <FixtureCard
-                  key={fixture.id}
-                  fixture={fixture}
-                />
+                <FixtureCard key={fixture.id} fixture={fixture} />
               ))}
             </div>
           </section>
@@ -220,13 +213,10 @@ export default async function EventEditionPage({ params }: PageProps) {
                     <div className="flex-1">
                       <div className="text-xs font-semibold text-[var(--text-secondary)] uppercase mb-1">
                         {fixture.scheduledTime
-                          ? fixture.scheduledTime.toLocaleTimeString(
-                              "en-US",
-                              {
-                                hour: "2-digit",
-                                minute: "2-digit",
-                              }
-                            )
+                          ? fixture.scheduledTime.toLocaleTimeString("en-US", {
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            })
                           : "TBD"}
                       </div>
 
@@ -282,11 +272,7 @@ export default async function EventEditionPage({ params }: PageProps) {
 
             <div className="grid sm:grid-cols-2 gap-4">
               {recentResults.map((fixture) => (
-                <FixtureCard
-                  key={fixture.id}
-                  fixture={fixture}
-                  compact
-                />
+                <FixtureCard key={fixture.id} fixture={fixture} compact />
               ))}
             </div>
           </section>
@@ -296,9 +282,7 @@ export default async function EventEditionPage({ params }: PageProps) {
       <footer className="border-t border-[var(--border)] bg-[var(--surface)] mt-12">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8">
           <div className="text-sm text-[var(--text-secondary)]">
-            <p className="mb-2">
-              TSDW Sports Platform • {eventEdition.name}
-            </p>
+            <p className="mb-2">TSDW Sports Platform • {eventEdition.name}</p>
 
             <p className="text-xs text-[var(--text-muted)]">
               TSDW Sports Committee, TCET

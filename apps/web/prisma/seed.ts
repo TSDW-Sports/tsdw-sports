@@ -114,6 +114,30 @@ async function main() {
 
   const competitions = [
     {
+      name: "Valorant",
+      slug: "valorant",
+      format: "KNOCKOUT" as const,
+      entryType: "TEAM" as const,
+    },
+    {
+      name: "Rocket League",
+      slug: "rocket-league",
+      format: "TBD" as const,
+      entryType: "TEAM" as const,
+    },
+    {
+      name: "FIFA",
+      slug: "fifa",
+      format: "KNOCKOUT" as const,
+      entryType: "INDIVIDUAL" as const,
+    },
+    {
+      name: "Cricket Auction",
+      slug: "cricket-auction",
+      format: "TBD" as const,
+      entryType: "TEAM" as const,
+    },
+    {
       name: "BGMI",
       slug: "bgmi",
       format: "TBD" as const,
@@ -123,12 +147,6 @@ async function main() {
       name: "CODM",
       slug: "codm",
       format: "TBD" as const,
-      entryType: "TEAM" as const,
-    },
-    {
-      name: "VALORANT",
-      slug: "valorant",
-      format: "KNOCKOUT" as const,
       entryType: "TEAM" as const,
     },
     {
@@ -144,22 +162,34 @@ async function main() {
       entryType: "INDIVIDUAL" as const,
     },
     {
-      name: "FIFA",
-      slug: "fifa",
-      format: "KNOCKOUT" as const,
+      name: "Chess.com",
+      slug: "chess-com",
+      format: "TBD" as const,
       entryType: "INDIVIDUAL" as const,
     },
     {
-      name: "FOOTBALL",
-      slug: "football",
+      name: "E-Football (PES)",
+      slug: "e-football-pes",
       format: "TBD" as const,
-      entryType: "TEAM" as const,
+      entryType: "INDIVIDUAL" as const,
     },
     {
-      name: "Cricket Auction",
-      slug: "cricket-auction",
+      name: "Mortal Kombat",
+      slug: "mortal-kombat",
       format: "TBD" as const,
-      entryType: "TEAM" as const,
+      entryType: "INDIVIDUAL" as const,
+    },
+    {
+      name: "Tekken",
+      slug: "tekken",
+      format: "TBD" as const,
+      entryType: "INDIVIDUAL" as const,
+    },
+    {
+      name: "F1",
+      slug: "f1",
+      format: "TBD" as const,
+      entryType: "INDIVIDUAL" as const,
     },
   ];
 
