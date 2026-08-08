@@ -27,33 +27,19 @@ export async function registerParticipant(
   // Read form data
   // ---------------------------------------------------------
 
-  const competitionId = String(
-    formData.get("competitionId") ?? "",
-  ).trim();
+  const competitionId = String(formData.get("competitionId") ?? "").trim();
 
-  const teamName = String(
-    formData.get("teamName") ?? "",
-  ).trim();
+  const teamName = String(formData.get("teamName") ?? "").trim();
 
-  const name = String(
-    formData.get("name") ?? "",
-  ).trim();
+  const name = String(formData.get("name") ?? "").trim();
 
-  const email = String(
-    formData.get("email") ?? "",
-  ).trim();
+  const email = String(formData.get("email") ?? "").trim();
 
-  const phone = String(
-    formData.get("phone") ?? "",
-  ).trim();
+  const phone = String(formData.get("phone") ?? "").trim();
 
-  const studentCode = String(
-    formData.get("studentCode") ?? "",
-  ).trim();
+  const studentCode = String(formData.get("studentCode") ?? "").trim();
 
-  const departmentId = String(
-    formData.get("departmentId") ?? "",
-  ).trim();
+  const departmentId = String(formData.get("departmentId") ?? "").trim();
 
   /*
    * Keep empty values.
@@ -121,9 +107,7 @@ export async function registerParticipant(
     }
 
     if (competition.status === "CANCELLED") {
-      return fail(
-        "Registration is unavailable for this competition.",
-      );
+      return fail("Registration is unavailable for this competition.");
     }
 
     // ---------------------------------------------------------
@@ -135,14 +119,32 @@ export async function registerParticipant(
         return fail("Team name is required.");
       }
 
+      const totalPlayers = 1 + memberNames.length;
+
+      if (
+        competition.minPlayers !== null &&
+        totalPlayers < competition.minPlayers
+      ) {
+        return fail(
+          `This competition requires at least ${competition.minPlayers} players.`,
+        );
+      }
+
+      if (
+        competition.maxPlayers !== null &&
+        totalPlayers > competition.maxPlayers
+      ) {
+        return fail(
+          `This competition allows a maximum of ${competition.maxPlayers} players.`,
+        );
+      }
+
       /*
        * Every member name must have a corresponding
        * student code.
        */
       if (memberNames.length !== memberStudentCodes.length) {
-        return fail(
-          "Some team member details are incomplete.",
-        );
+        return fail("Some team member details are incomplete.");
       }
 
       /*
@@ -152,41 +154,30 @@ export async function registerParticipant(
         memberNames.some((value) => !value) ||
         memberStudentCodes.some((value) => !value)
       ) {
-        return fail(
-          "Please complete all team member details.",
-        );
+        return fail("Please complete all team member details.");
       }
 
       /*
        * Normalize student codes before comparing them.
        */
-      const normalizedCaptainCode =
-        studentCode.toLowerCase();
+      const normalizedCaptainCode = studentCode.toLowerCase();
 
-      const normalizedMemberCodes =
-        memberStudentCodes.map((code) =>
-          code.toLowerCase(),
-        );
+      const normalizedMemberCodes = memberStudentCodes.map((code) =>
+        code.toLowerCase(),
+      );
 
       /*
        * Captain must not appear again in the roster.
        */
-      if (
-        normalizedMemberCodes.includes(
-          normalizedCaptainCode,
-        )
-      ) {
-        return fail(
-          "The captain cannot also be added as a team member.",
-        );
+      if (normalizedMemberCodes.includes(normalizedCaptainCode)) {
+        return fail("The captain cannot also be added as a team member.");
       }
 
       /*
        * Prevent duplicate students inside the submitted roster.
        */
       if (
-        new Set(normalizedMemberCodes).size !==
-        normalizedMemberCodes.length
+        new Set(normalizedMemberCodes).size !== normalizedMemberCodes.length
       ) {
         return fail(
           "The same student cannot be added to the team more than once.",
@@ -212,39 +203,33 @@ export async function registerParticipant(
     // Prevent captain / individual duplicate registration
     // ---------------------------------------------------------
 
-    const existingRegistration =
-      await prisma.competitionEntryMember.findFirst({
-        where: {
-          entry: {
-            competitionId,
-            status: {
-              notIn: ["REJECTED", "WITHDRAWN"],
-            },
-          },
-
-          participant: {
-            studentCode: {
-              equals: studentCode,
-              mode: "insensitive",
-            },
+    const existingRegistration = await prisma.competitionEntryMember.findFirst({
+      where: {
+        entry: {
+          competitionId,
+          status: {
+            notIn: ["REJECTED", "WITHDRAWN"],
           },
         },
-      });
+
+        participant: {
+          studentCode: {
+            equals: studentCode,
+            mode: "insensitive",
+          },
+        },
+      },
+    });
 
     if (existingRegistration) {
-      return fail(
-        "This student is already registered for this competition.",
-      );
+      return fail("This student is already registered for this competition.");
     }
 
     // ---------------------------------------------------------
     // Prevent roster members from already being registered
     // ---------------------------------------------------------
 
-    if (
-      competition.entryType === "TEAM" &&
-      memberStudentCodes.length > 0
-    ) {
+    if (competition.entryType === "TEAM" && memberStudentCodes.length > 0) {
       const existingMemberRegistration =
         await prisma.competitionEntryMember.findFirst({
           where: {
@@ -279,110 +264,90 @@ export async function registerParticipant(
     // Determine entry name
     // ---------------------------------------------------------
 
-    const entryName =
-      competition.entryType === "TEAM"
-        ? teamName
-        : name;
+    const entryName = competition.entryType === "TEAM" ? teamName : name;
 
     // ---------------------------------------------------------
     // Create registration atomically
     // ---------------------------------------------------------
 
-    const result = await prisma.$transaction(
-      async (tx) => {
-        /*
-         * Create captain for team competitions,
-         * or participant for individual competitions.
-         */
-        const participant =
-          await tx.participant.create({
+    const result = await prisma.$transaction(async (tx) => {
+      /*
+       * Create captain for team competitions,
+       * or participant for individual competitions.
+       */
+      const participant = await tx.participant.create({
+        data: {
+          name,
+          email,
+          phone,
+          studentCode,
+          departmentId,
+        },
+      });
+
+      /*
+       * Create competition entry.
+       */
+      const entry = await tx.competitionEntry.create({
+        data: {
+          name: entryName,
+          status: "PENDING",
+          competitionId,
+          departmentId,
+        },
+      });
+
+      /*
+       * Connect captain / individual participant
+       * to competition entry.
+       */
+      await tx.competitionEntryMember.create({
+        data: {
+          entryId: entry.id,
+          participantId: participant.id,
+          isCaptain: competition.entryType === "TEAM",
+        },
+      });
+
+      // -----------------------------------------------------
+      // Create additional team members
+      // -----------------------------------------------------
+
+      if (competition.entryType === "TEAM") {
+        for (let index = 0; index < memberNames.length; index++) {
+          const memberName = memberNames[index];
+
+          const memberStudentCode = memberStudentCodes[index];
+
+          const memberParticipant = await tx.participant.create({
             data: {
-              name,
-              email,
-              phone,
-              studentCode,
+              name: memberName,
+              studentCode: memberStudentCode,
               departmentId,
             },
           });
 
-        /*
-         * Create competition entry.
-         */
-        const entry =
-          await tx.competitionEntry.create({
+          await tx.competitionEntryMember.create({
             data: {
-              name: entryName,
-              status: "PENDING",
-              competitionId,
-              departmentId,
+              entryId: entry.id,
+              participantId: memberParticipant.id,
+              isCaptain: false,
             },
           });
-
-        /*
-         * Connect captain / individual participant
-         * to competition entry.
-         */
-        await tx.competitionEntryMember.create({
-          data: {
-            entryId: entry.id,
-            participantId: participant.id,
-            isCaptain:
-              competition.entryType === "TEAM",
-          },
-        });
-
-        // -----------------------------------------------------
-        // Create additional team members
-        // -----------------------------------------------------
-
-        if (competition.entryType === "TEAM") {
-          for (
-            let index = 0;
-            index < memberNames.length;
-            index++
-          ) {
-            const memberName =
-              memberNames[index];
-
-            const memberStudentCode =
-              memberStudentCodes[index];
-
-            const memberParticipant =
-              await tx.participant.create({
-                data: {
-                  name: memberName,
-                  studentCode: memberStudentCode,
-                  departmentId,
-                },
-              });
-
-            await tx.competitionEntryMember.create({
-              data: {
-                entryId: entry.id,
-                participantId:
-                  memberParticipant.id,
-                isCaptain: false,
-              },
-            });
-          }
         }
+      }
 
-        return {
-          participant,
-          entry,
-        };
-      },
-    );
+      return {
+        participant,
+        entry,
+      };
+    });
 
-    console.log(
-      "Registration created:",
-      result.entry.id,
-    );
+    console.log("Registration created:", result.entry.id);
 
     return {
       success: true,
-      message:
-        "Registration submitted successfully. It is awaiting approval.",
+      message: "Registration submitted successfully. It is awaiting approval.",
     };
   } catch (error) {
     console.error("Registration failed:", error);
@@ -396,8 +361,7 @@ export async function registerParticipant(
      */
     return {
       success: false,
-      message:
-        "Registration failed. Please try again.",
+      message: "Registration failed. Please try again.",
       values: submittedValues,
     };
   }

@@ -25,20 +25,27 @@ interface PageProps {
 }
 
 function createCompetitionSlug(name: string) {
-  return name
-    .toLowerCase()
-    .replace(/\s+/g, "-")
-    .replace(/[&']/g, "");
+  return name.toLowerCase().replace(/\s+/g, "-").replace(/[&']/g, "");
 }
 
 async function loadCompetitionPage(
   eventSlug: string,
   editionSlug: string,
-  competitionSlug: string
+  competitionSlug: string,
 ): Promise<
   | {
       eventEdition: EventEdition;
       competition: Competition;
+      settings?: {
+        slug: string;
+        entryType: "INDIVIDUAL" | "TEAM";
+        minPlayers: number | null;
+        maxPlayers: number | null;
+        entryFee: number | null;
+        platform: string | null;
+        venue: string | null;
+        rules: string | null;
+      };
     }
   | undefined
 > {
@@ -54,7 +61,7 @@ async function loadCompetitionPage(
 
     const competition = eventEdition.competitions.find(
       (item) =>
-        createCompetitionSlug(item.name) === competitionSlug.toLowerCase()
+        createCompetitionSlug(item.name) === competitionSlug.toLowerCase(),
     );
 
     if (!competition) {
@@ -185,13 +192,9 @@ async function loadCompetitionPage(
     name: dbCompetition.name,
     format: dbCompetition.format,
     category:
-      dbCompetition.name === "Cricket Auction"
-        ? "FUN_GAMES"
-        : "ESPORTS",
+      dbCompetition.name === "Cricket Auction" ? "FUN_GAMES" : "ESPORTS",
     status:
-      dbCompetition.status === "CANCELLED"
-        ? "UPCOMING"
-        : dbCompetition.status,
+      dbCompetition.status === "CANCELLED" ? "UPCOMING" : dbCompetition.status,
     entrants,
     fixtures,
     winner: dbCompetition.winnerEntryId ?? undefined,
@@ -203,31 +206,30 @@ async function loadCompetitionPage(
     eventId: dbEdition.event.slug,
     startDate: dbEdition.startDate ?? undefined,
     endDate: dbEdition.endDate ?? undefined,
-    status:
-      dbEdition.status === "CANCELLED"
-        ? "UPCOMING"
-        : dbEdition.status,
+    status: dbEdition.status === "CANCELLED" ? "UPCOMING" : dbEdition.status,
     competitions: [competition],
   };
 
   return {
     eventEdition,
     competition,
+    settings: {
+      slug: dbCompetition.slug,
+      entryType: dbCompetition.entryType,
+      minPlayers: dbCompetition.minPlayers,
+      maxPlayers: dbCompetition.maxPlayers,
+      entryFee: dbCompetition.entryFee,
+      platform: dbCompetition.platform,
+      venue: dbCompetition.venue,
+      rules: dbCompetition.rules,
+    },
   };
 }
 
 export async function generateMetadata({ params }: PageProps) {
-  const {
-    event,
-    edition,
-    competition: competitionParam,
-  } = await params;
+  const { event, edition, competition: competitionParam } = await params;
 
-  const data = await loadCompetitionPage(
-    event,
-    edition,
-    competitionParam
-  );
+  const data = await loadCompetitionPage(event, edition, competitionParam);
 
   if (!data) {
     return {
@@ -242,35 +244,23 @@ export async function generateMetadata({ params }: PageProps) {
 }
 
 export default async function CompetitionPage({ params }: PageProps) {
-  const {
-    event,
-    edition,
-    competition: competitionParam,
-  } = await params;
+  const { event, edition, competition: competitionParam } = await params;
 
-  const data = await loadCompetitionPage(
-    event,
-    edition,
-    competitionParam
-  );
+  const data = await loadCompetitionPage(event, edition, competitionParam);
 
   if (!data) {
     notFound();
   }
 
-  const { eventEdition, competition } = data;
+  const { eventEdition, competition, settings } = data;
 
   const completedFixtures = competition.fixtures.filter(
     (fixture) =>
-      fixture.status === "COMPLETED" ||
-      fixture.status === "WALKOVER"
+      fixture.status === "COMPLETED" || fixture.status === "WALKOVER",
   );
 
-  const competitionResults = getRecentResults(
-    eventEdition,
-    100
-  ).filter(
-    (fixture) => fixture.competition === competition.id
+  const competitionResults = getRecentResults(eventEdition, 100).filter(
+    (fixture) => fixture.competition === competition.id,
   );
 
   const hasBracket =
@@ -284,10 +274,7 @@ export default async function CompetitionPage({ params }: PageProps) {
       <main className="flex-1 max-w-6xl w-full mx-auto px-4 sm:px-6 py-8 sm:py-12">
         {/* Breadcrumb */}
         <div className="mb-6 text-sm text-[var(--text-secondary)]">
-          <Link
-            href="/"
-            className="hover:text-[var(--text-primary)]"
-          >
+          <Link href="/" className="hover:text-[var(--text-primary)]">
             Home
           </Link>
 
@@ -302,9 +289,7 @@ export default async function CompetitionPage({ params }: PageProps) {
 
           {" / "}
 
-          <span className="text-[var(--text-primary)]">
-            {competition.name}
-          </span>
+          <span className="text-[var(--text-primary)]">{competition.name}</span>
         </div>
 
         {/* Competition Header */}
@@ -321,17 +306,13 @@ export default async function CompetitionPage({ params }: PageProps) {
 
               <div className="flex flex-wrap items-center gap-3 text-sm text-[var(--text-secondary)]">
                 <span className="capitalize">
-                  {competition.category
-                    .toLowerCase()
-                    .replace(/_/g, " ")}
+                  {competition.category.toLowerCase().replace(/_/g, " ")}
                 </span>
 
                 <span>•</span>
 
                 <span className="capitalize">
-                  {competition.format
-                    .toLowerCase()
-                    .replace(/_/g, " ")}
+                  {competition.format.toLowerCase().replace(/_/g, " ")}
                 </span>
               </div>
             </div>
@@ -347,12 +328,100 @@ export default async function CompetitionPage({ params }: PageProps) {
 
               <div className="text-2xl font-bold text-[var(--text-primary)]">
                 {competition.entrants.find(
-                  (entrant) => entrant.id === competition.winner
+                  (entrant) => entrant.id === competition.winner,
                 )?.code || competition.winner}
               </div>
             </div>
           )}
         </div>
+
+        {settings && (
+          <section className="mb-12">
+            <SectionHeader
+              title="Competition Details"
+              subtitle="Registration and tournament information"
+            />
+
+            <div className="rounded-lg border border-[var(--border)] bg-[var(--surface)]">
+              <div className="grid grid-cols-2 gap-px bg-[var(--border)] sm:grid-cols-3 lg:grid-cols-6">
+                <CompetitionDetail
+                  label="Entry Type"
+                  value={settings.entryType === "TEAM" ? "Team" : "Individual"}
+                />
+
+                <CompetitionDetail
+                  label="Players"
+                  value={formatPlayerRange(
+                    settings.minPlayers,
+                    settings.maxPlayers,
+                    settings.entryType,
+                  )}
+                />
+
+                <CompetitionDetail
+                  label="Entry Fee"
+                  value={
+                    settings.entryFee === null
+                      ? "TBD"
+                      : settings.entryFee === 0
+                        ? "Free"
+                        : `₹${settings.entryFee}`
+                  }
+                />
+
+                <CompetitionDetail
+                  label="Platform"
+                  value={settings.platform ?? "TBD"}
+                />
+
+                <CompetitionDetail
+                  label="Venue"
+                  value={settings.venue ?? "TBD"}
+                />
+
+                <CompetitionDetail
+                  label="Format"
+                  value={formatDisplayValue(competition.format)}
+                />
+              </div>
+
+              <div className="border-t border-[var(--border)] p-5 sm:p-6">
+                <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-[var(--text-muted)]">
+                  Rules
+                </p>
+
+                {settings.rules ? (
+                  <p className="whitespace-pre-wrap text-sm leading-6 text-[var(--text-secondary)]">
+                    {settings.rules}
+                  </p>
+                ) : (
+                  <p className="text-sm text-[var(--text-secondary)]">
+                    Competition rules will be published soon.
+                  </p>
+                )}
+              </div>
+
+              <div className="flex flex-col gap-3 border-t border-[var(--border)] p-5 sm:flex-row sm:items-center sm:justify-between sm:p-6">
+                <div>
+                  <p className="font-semibold text-[var(--text-primary)]">
+                    Ready to compete?
+                  </p>
+
+                  <p className="mt-1 text-sm text-[var(--text-secondary)]">
+                    Submit your registration for {competition.name}.
+                  </p>
+                </div>
+
+                <Link
+                  href={`/events/${event}/${edition}/${settings.slug}/register`}
+                  className="inline-flex items-center justify-center rounded-lg bg-[var(--text-primary)] px-5 py-2.5 text-sm font-semibold text-[var(--canvas)] transition-opacity hover:opacity-90"
+                >
+                  Register
+                </Link>
+              </div>
+            </div>
+          </section>
+        )}
 
         {/* Empty state */}
         {competition.fixtures.length === 0 &&
@@ -364,8 +433,8 @@ export default async function CompetitionPage({ params }: PageProps) {
                 </p>
 
                 <p className="text-sm text-[var(--text-secondary)]">
-                  Fixtures, participants, schedule, and tournament
-                  details will be published once they are finalized.
+                  Fixtures, participants, schedule, and tournament details will
+                  be published once they are finalized.
                 </p>
               </div>
             </section>
@@ -394,11 +463,7 @@ export default async function CompetitionPage({ params }: PageProps) {
 
             <div className="grid sm:grid-cols-2 gap-4">
               {competition.fixtures.map((fixture) => (
-                <FixtureCard
-                  key={fixture.id}
-                  fixture={fixture}
-                  compact
-                />
+                <FixtureCard key={fixture.id} fixture={fixture} compact />
               ))}
             </div>
           </section>
@@ -443,11 +508,7 @@ export default async function CompetitionPage({ params }: PageProps) {
 
             <div className="grid sm:grid-cols-2 gap-4">
               {competitionResults.map((fixture) => (
-                <FixtureCard
-                  key={fixture.id}
-                  fixture={fixture}
-                  compact
-                />
+                <FixtureCard key={fixture.id} fixture={fixture} compact />
               ))}
             </div>
           </section>
@@ -457,9 +518,7 @@ export default async function CompetitionPage({ params }: PageProps) {
       <footer className="border-t border-[var(--border)] bg-[var(--surface)] mt-12">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8">
           <div className="text-sm text-[var(--text-secondary)]">
-            <p className="mb-2">
-              TSDW Sports Platform • {eventEdition.name}
-            </p>
+            <p className="mb-2">TSDW Sports Platform • {eventEdition.name}</p>
 
             <p className="text-xs text-[var(--text-muted)]">
               TSDW Sports Committee, TCET
@@ -469,4 +528,53 @@ export default async function CompetitionPage({ params }: PageProps) {
       </footer>
     </div>
   );
+}
+
+function CompetitionDetail({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="bg-[var(--surface)] p-4 sm:p-5">
+      <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">
+        {label}
+      </p>
+
+      <p className="text-sm font-semibold text-[var(--text-primary)]">
+        {value}
+      </p>
+    </div>
+  );
+}
+
+function formatPlayerRange(
+  minPlayers: number | null,
+  maxPlayers: number | null,
+  entryType: "INDIVIDUAL" | "TEAM",
+) {
+  if (entryType === "INDIVIDUAL") {
+    return "1";
+  }
+
+  if (minPlayers === null && maxPlayers === null) {
+    return "TBD";
+  }
+
+  if (minPlayers !== null && maxPlayers !== null && minPlayers === maxPlayers) {
+    return String(minPlayers);
+  }
+
+  if (minPlayers !== null && maxPlayers !== null) {
+    return `${minPlayers}–${maxPlayers}`;
+  }
+
+  if (minPlayers !== null) {
+    return `${minPlayers}+`;
+  }
+
+  return `Up to ${maxPlayers}`;
+}
+
+function formatDisplayValue(value: string) {
+  return value
+    .toLowerCase()
+    .replace(/_/g, " ")
+    .replace(/\b\w/g, (character) => character.toUpperCase());
 }

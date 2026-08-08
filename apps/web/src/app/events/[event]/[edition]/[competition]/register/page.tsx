@@ -161,12 +161,10 @@ export default async function RegistrationPage({ params }: PageProps) {
         {/* Form */}
         <RegistrationForm
           competitionId={competition.id}
-          isTeam={isTeam}
-          departments={departments.map((department) => ({
-            id: department.id,
-            name: department.name,
-            code: department.code,
-          }))}
+          isTeam={competition.entryType === "TEAM"}
+          departments={departments}
+          minPlayers={competition.minPlayers}
+          maxPlayers={competition.maxPlayers}
         />
       </main>
     </div>
